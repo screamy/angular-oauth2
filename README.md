@@ -34,7 +34,7 @@ If you're using `bower` they will be automatically downloaded upon installing th
 ###### 3. Configure `OAuth` (required) and `OAuthToken` (optional):
 
 ```js
-angular.module('myApp', ['angular-oauth2'])
+angular.module('myApp', ['ngCookies', 'angular-oauth2'])
   .config(['OAuthProvider', function(OAuthProvider) {
     OAuthProvider.configure({
       baseUrl: 'https://api.website.com',
@@ -47,7 +47,7 @@ angular.module('myApp', ['angular-oauth2'])
 ###### 4. Catch `OAuth` errors and do something with them (optional):
 
 ```js
-angular.module('myApp', ['angular-oauth2'])
+angular.module('myApp', ['ngCookies', 'angular-oauth2'])
   .run(['$rootScope', '$window', 'OAuth', function($rootScope, $window, OAuth) {
     $rootScope.$on('oauth:error', function(event, rejection) {
       // Ignore `invalid_grant` error - should be catched on `LoginController`.
@@ -147,13 +147,16 @@ OAuth.revokeToken()
 
 #### OAuthTokenProvider
 
-`OAuthTokenProvider` uses [angular-cookies](https://github.com/angular/bower-angular-cookies) to store the cookies. Check the [available options](https://code.angularjs.org/1.4.0/docs/api/ngCookies/service/$cookies).
+`OAuthTokenProvider` uses:
+ - [angular-cookies](https://github.com/angular/bower-angular-cookies) to store the cookies. Check the [available options](https://code.angularjs.org/1.4.0/docs/api/ngCookies/service/$cookies).
+ - localStorage
 
 Configuration defaults:
 
 ```js
 OAuthTokenProvider.configure({
   name: 'token',
+  storage: 'cookies', // or localstorage
   options: {
     secure: true
   }

@@ -13,7 +13,6 @@
         root.angularOAuth2 = factory(root.angular, root.queryString);
     }
 })(this, function(angular, queryString) {
-    var ngModule = angular.module("angular-oauth2", [ "ngCookies" ]).config(oauthConfig).factory("oauthInterceptor", oauthInterceptor).provider("OAuth", OAuthProvider).provider("OAuthToken", OAuthTokenProvider);
     function oauthConfig($httpProvider) {
         $httpProvider.interceptors.push("oauthInterceptor");
     }
@@ -159,6 +158,7 @@
     function OAuthTokenProvider() {
         var config = {
             name: "token",
+            storage: "cookies",
             options: {
                 secure: true
             }
@@ -170,13 +170,14 @@
             angular.extend(config, params);
             return config;
         };
-        this.$get = function($cookies) {
+        this.$get = function($injector) {
+            var oauthTokenStorage = $injector.get(config.storage + "Adapter");
             var OAuthToken = function() {
                 function OAuthToken() {}
                 _prototypeProperties(OAuthToken, null, {
                     setToken: {
                         value: function setToken(data) {
-                            return $cookies.putObject(config.name, data, config.options);
+                            return oauthTokenStorage.putObject(config.name, data, config.options);
                         },
                         writable: true,
                         enumerable: true,
@@ -184,7 +185,7 @@
                     },
                     getToken: {
                         value: function getToken() {
-                            return $cookies.getObject(config.name);
+                            return oauthTokenStorage.getObject(config.name);
                         },
                         writable: true,
                         enumerable: true,
@@ -227,7 +228,7 @@
                     },
                     removeToken: {
                         value: function removeToken() {
-                            return $cookies.remove(config.name, config.options);
+                            return oauthTokenStorage.remove(config.name, config.options);
                         },
                         writable: true,
                         enumerable: true,
@@ -238,7 +239,7 @@
             }();
             return new OAuthToken();
         };
-        this.$get.$inject = [ "$cookies" ];
+        this.$get.$inject = [ "$injector" ];
     }
     function oauthInterceptor($q, $rootScope, OAuthToken) {
         return {
@@ -262,5 +263,77 @@
         };
     }
     oauthInterceptor.$inject = [ "$q", "$rootScope", "OAuthToken" ];
+    var _prototypeProperties = function(child, staticProps, instanceProps) {
+        if (staticProps) Object.defineProperties(child, staticProps);
+        if (instanceProps) Object.defineProperties(child.prototype, instanceProps);
+    };
+    var LocalStorageAdapter = function() {
+        function LocalStorageAdapter($window) {
+            this.JSON = $window.JSON;
+            this.localStorage = $window.localStorage;
+        }
+        LocalStorageAdapter.$inject = [ "$window" ];
+        _prototypeProperties(LocalStorageAdapter, null, {
+            putObject: {
+                value: function putObject(name, data) {
+                    return this.localStorage.setItem(name, this.JSON.stringify(data));
+                },
+                writable: true,
+                enumerable: true,
+                configurable: true
+            },
+            getObject: {
+                value: function getObject(name) {
+                    return this.JSON.parse(this.localStorage.getItem(name));
+                },
+                writable: true,
+                enumerable: true,
+                configurable: true
+            },
+            remove: {
+                value: function remove(name) {
+                    return this.localStorage.removeItem(name);
+                },
+                writable: true,
+                enumerable: true,
+                configurable: true
+            }
+        });
+        return LocalStorageAdapter;
+    }();
+    var CookieStorageAdapter = function() {
+        function CookieStorageAdapter($cookies) {
+            this.$cookies = $cookies;
+        }
+        CookieStorageAdapter.$inject = [ "$cookies" ];
+        _prototypeProperties(CookieStorageAdapter, null, {
+            putObject: {
+                value: function putObject(name, data, options) {
+                    return this.$cookies.putObject(name, data, options);
+                },
+                writable: true,
+                enumerable: true,
+                configurable: true
+            },
+            getObject: {
+                value: function getObject(name) {
+                    return this.$cookies.getObject(name);
+                },
+                writable: true,
+                enumerable: true,
+                configurable: true
+            },
+            remove: {
+                value: function remove(name, options) {
+                    return this.$cookies.remove(name, options);
+                },
+                writable: true,
+                enumerable: true,
+                configurable: true
+            }
+        });
+        return CookieStorageAdapter;
+    }();
+    var ngModule = angular.module("angular-oauth2", []).config(oauthConfig).factory("oauthInterceptor", oauthInterceptor).provider("OAuth", OAuthProvider).provider("OAuthToken", OAuthTokenProvider).service("localstorageAdapter", LocalStorageAdapter).service("cookiesAdapter", CookieStorageAdapter);
     return ngModule;
 });
